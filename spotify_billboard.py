@@ -31,32 +31,38 @@ def example_spotipy():
 
     pp.pprint(results)
 
-# TODO: Change to process.extract from list of 10 artists & see if it's above like 50% or something or maybe just take highest match
+
 def fuzzyMatch(artist_name, artists):
-    matchRatio = fuzz.ratio(artist_name, artists)
+    #matchRatio = fuzz.ratio(artist_name, artists)
+    match = process.extractOne(artist_name, artists)
 
-    return matchRatio
+    return match
 
-# TODO: Add multi-song checking
-# CURRENTLY: Adding multi-artist fuzzy matching
+
 def getSpotifyID( song_name, artist_name ):
     res = spotify.search(q=song_name, type='track', limit=2)
     #id = res['tracks']['items'][0]['artists'][0]['id']  # gets artist ID
     #artists = [res['tracks']['items'][0]['artists'][n]['name'] for n in res['tracks']['items'][0]['artists']]
 
-    artists = ''
+    artists_list = []
     # Gets all artist names from first track
-    for artist in res['tracks']['items'][0]['artists']:
-        artists += artist['name'] #+ ' '
+    for song in res['tracks']['items']:
+        #for artist in res['tracks']['items'][0]['artists']:
+        artists = ''
+        for artist in song['artists']:
+            artists += artist['name'] #+ ' '
+        artists_list += [ artists ]
 
-    artists = artists.lower()
-    artist_name = artist_name.lower()
-    print(fuzzyMatch(artist_name, artists))
+
+    #artists_list = [ artist.lower() for artist in artists ]  #artists.lower()
+    #artist_name = artist_name.lower()
+    print(fuzzyMatch(artist_name, artists_list))
 
     print(artist_name)
-    print(artists)
+    print(artists_list)
     id = res['tracks']['items'][0]['id']
-    return artists
+    return id
+    #return res
 
 def main():
     song_name = 'Rockstar'
