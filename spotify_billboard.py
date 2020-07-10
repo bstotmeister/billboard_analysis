@@ -1,5 +1,6 @@
 '#!/usr/bin/env python3'
 
+#import billboard_spotify_tests
 import requests
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
@@ -8,7 +9,6 @@ from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 pp = pprint.PrettyPrinter(indent=4)
 
-fuzzy_matching_limit = 70  # Percent string needs to match
 
 # API Setup
 c_id = '48a2f7c17dbd41a38f0bea52cf5818d1'
@@ -35,32 +35,31 @@ def example_spotipy():
 def fuzzyMatch(artist_name, artists):
     #matchRatio = fuzz.ratio(artist_name, artists)
     match = process.extractOne(artist_name, artists)
+    index = artists.index(match[0])
 
-    return match
+    #return match
+    return index
 
 
 def getSpotifyID( song_name, artist_name ):
-    res = spotify.search(q=song_name, type='track', limit=2)
+    res = spotify.search(q=song_name, type='track', limit=10)
     #id = res['tracks']['items'][0]['artists'][0]['id']  # gets artist ID
     #artists = [res['tracks']['items'][0]['artists'][n]['name'] for n in res['tracks']['items'][0]['artists']]
 
     artists_list = []
     # Gets all artist names from first track
     for song in res['tracks']['items']:
-        #for artist in res['tracks']['items'][0]['artists']:
-        artists = ''
-        for artist in song['artists']:
-            artists += artist['name'] #+ ' '
+        artists = [ artist['name'] + ' ' for artist in song['artists'] ]
         artists_list += [ artists ]
 
 
-    #artists_list = [ artist.lower() for artist in artists ]  #artists.lower()
-    #artist_name = artist_name.lower()
-    print(fuzzyMatch(artist_name, artists_list))
 
-    print(artist_name)
-    print(artists_list)
-    id = res['tracks']['items'][0]['id']
+    song_index = fuzzyMatch(artist_name, artists_list)
+    print(song_index)
+
+    #print(artist_name)
+    #print(artists_list)
+    id = res['tracks']['items'][song_index]['id']
     return id
     #return res
 
@@ -78,9 +77,12 @@ def main():
     s = getSpotifyID(song_name='Du Hast', artist_name='Rammstein')
     r = getSpotifyID(song_name='A Moment Apart', artist_name='Odesza')
     q = getSpotifyID(song_name='Rockstar', artist_name='DaBaby')
-    #pp.pprint(s)
-    #pp.pprint(r)
+    p = getSpotifyID(song_name='Rockstar', artist_name='Nickleback') # Intentionally misspelled
+    pp.pprint(s)
+    pp.pprint(r)
     pp.pprint(q)
+    pp.pprint(p)
 
 if __name__ == "__main__":
     main()
+    #unittest.main()
