@@ -36,7 +36,7 @@ def readPickleData( filepath='data/billboard_data.pickle' ):
 def gatherDataOld():
     end_year = 1970
     start_year = 2020
-    billboard_data = readPickleData()
+    billboard_data = readPickleData(filepath='data/billboard_data.pickle')
 
     # Get up to this year's data
     for month in range(7, 0, -1):

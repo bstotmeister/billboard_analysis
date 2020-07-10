@@ -1,5 +1,6 @@
 '#!/usr/bin/env python3'
 
+import os
 #import billboard_spotify_tests
 import requests
 import spotipy
@@ -7,34 +8,21 @@ from spotipy.oauth2 import SpotifyClientCredentials
 import pprint
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
+from bb import writePickleData, readPickleData
+
 pp = pprint.PrettyPrinter(indent=4)
 
 
-# API Setup
-c_id = '48a2f7c17dbd41a38f0bea52cf5818d1'
-c_scrt = '3d18fadb6c1145a3b7bd86cfd5308d9e'
+# API Setup, set these through spotify web api dashboard
+c_id = os.getenv('SPOTIFY_CLIENT_ID')
+c_scrt = os.getenv('SPOTIFY_CLIENT_SECRET')
 a_mgr = SpotifyClientCredentials(client_id=c_id, client_secret=c_scrt)
 spotify = spotipy.Spotify(client_credentials_manager=a_mgr)
-
-
-def example_spotipy():
-    birdy_uri = 'spotify:artist:2WX2uTcsvV5OnS0inACecP'
-
-    results = spotify.artist_albums(birdy_uri, album_type='album')
-    albums = results['items']
-    while results['next']:
-        results = spotify.next(results)
-        albums.extend(results['items'])
-
-    for album in albums:
-        print(album['name'])
-
-    pp.pprint(results)
-
 
 def fuzzyMatch(artist_name, artists):
     #matchRatio = fuzz.ratio(artist_name, artists)
     match = process.extractOne(artist_name, artists)
+    print('%s : %s' % (artist_name, artists))
     index = artists.index(match[0])
 
     #return match
@@ -42,20 +30,21 @@ def fuzzyMatch(artist_name, artists):
 
 
 def getSpotifyID( song_name, artist_name ):
-    res = spotify.search(q=song_name, type='track', limit=10)
-    #id = res['tracks']['items'][0]['artists'][0]['id']  # gets artist ID
-    #artists = [res['tracks']['items'][0]['artists'][n]['name'] for n in res['tracks']['items'][0]['artists']]
+    res = spotify.search(q=song_name, type='track', limit=5)
 
     artists_list = []
-    # Gets all artist names from first track
     for song in res['tracks']['items']:
-        artists = [ artist['name'] + ' ' for artist in song['artists'] ]
+        artists = [ artist['name'] for artist in song['artists'] ]
+        #artists_list += [ artists ]
+        #artists = ''
+        #for artist in song['artists']:
+         #   artists += artist['name'] + ' '
         artists_list += [ artists ]
 
-
-
+    pp.pprint(res)
+    print(song_name)
     song_index = fuzzyMatch(artist_name, artists_list)
-    print(song_index)
+    #print(song_index)
 
     #print(artist_name)
     #print(artists_list)
@@ -63,25 +52,39 @@ def getSpotifyID( song_name, artist_name ):
     return id
     #return res
 
-def main():
-    song_name = 'Rockstar'
-    artist = 'DaBaby'
-    #album = 'BLAME IT ON BABY'
-    #search_str = 'q=name:%s,artist=%s' % (song_name, artist)
-    #search_str = 'name:%s&type=album' % (album)
-    #search_str = '%s&%s' % (song_name, artist)
-    #print(search_str)
-    #res = spotify.search(q=search_str, type='track')
-    #pp.pprint(res)
 
-    s = getSpotifyID(song_name='Du Hast', artist_name='Rammstein')
-    r = getSpotifyID(song_name='A Moment Apart', artist_name='Odesza')
-    q = getSpotifyID(song_name='Rockstar', artist_name='DaBaby')
-    p = getSpotifyID(song_name='Rockstar', artist_name='Nickleback') # Intentionally misspelled
-    pp.pprint(s)
-    pp.pprint(r)
-    pp.pprint(q)
-    pp.pprint(p)
+def getSpotifyIDs():
+    #song_ids = readPickleData( filepath='data/spotify_song_ids.pickle' )   # Disabled until we run program once to update cache
+    song_ids = dict()
+    unique_songs = readPickleData( filepath='data/billboard_songs.pickle' )
+
+    for artist in unique_songs:
+        for song in unique_songs[artist]:
+            id = getSpotifyID( song_name=song, artist_name=artist)
+            if artist not in song_ids:
+                song_ids[artist] = dict()
+            if song not in song_ids[artist]:
+                song_ids[artist][song] = id
+            elif id is not song_ids[artist][song]:
+                print('song:%s\n artist:%s\n id:%s \n' % (song, artist, id))
+                exit()
+
+    pp.pprint(song_ids)
+    writePickleData( data=song_ids, filepath='data/spotify_song_ids.pickle')
+    # First thing - minimize billboard
+
+def main():
+    # s = getSpotifyID(song_name='Du Hast', artist_name='Rammstein')
+    # r = getSpotifyID(song_name='A Moment Apart', artist_name='Odesza')
+    # q = getSpotifyID(song_name='Rockstar', artist_name='DaBaby')
+    # q = getSpotifyID(song_name='Rockstar', artist_name='Roddy Rich')
+    # p = getSpotifyID(song_name='Rockstar', artist_name='Nickleback') # Intentionally misspelled
+    # q = getSpotifyID(song_name='Rockstar', artist_name='gab3')
+    # pp.pprint(s)
+    # pp.pprint(r)
+    # pp.pprint(q)
+    # pp.pprint(p)
+    getSpotifyIDs()
 
 if __name__ == "__main__":
     main()
