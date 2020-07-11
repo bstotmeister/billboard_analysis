@@ -51,6 +51,30 @@ def getSpotifyID( song_name, artist_name ):
     return id
 
 
+def getAudioAnalyses():
+    song_ids = readPickleData(filepath='data/spotify_song_ids.pickle')
+    #pp.pprint(song_ids)
+    song_analysis = readPickleData(filepath='data/song_analysis.pickle')
+    #song_analysis = dict()
+
+    for artist in song_ids:
+        if artist not in song_analysis:
+            if 'XXXTENTACION' not in artist:
+               break
+            song_analysis[artist] = dict()
+        for song in song_ids[artist]:
+            if song not in song_analysis[artist]:
+                spotify_id = song_ids[artist][song]
+                print(spotify_id)
+                if spotify_id is not -1:
+                    song_analysis[artist][song] = [ spotify.audio_analysis( track_id=spotify_id ) ] # First elem will be audio analysis, second will be audio features
+            else:
+                print('Song: %s by: %s already found in cache' % (song, artist))
+
+    writePickleData( data=song_analysis, filepath='data/song_analysis.pickle')
+
+    return song_analysis
+
 # Works somewhat reliably?
 def getSpotifyIDs():
     """
@@ -70,16 +94,17 @@ def getSpotifyIDs():
                 song_ids[artist] = dict()
             if song not in song_ids[artist]:
                 id = getSpotifyID(song_name=song, artist_name=artist)
-                if id is -1:
-                    song_ids[artist][song] = id
-                    break
                 song_ids[artist][song] = id
             else:
                 print('Song found in cache: %s  by  %s' % (song, artist))
 
     pp.pprint(song_ids)
     writePickleData( data=song_ids, filepath='data/spotify_song_ids.pickle')
+    return song_ids
     # First thing - minimize billboard
+
+
+
 
 def main():
     # s = getSpotifyID(song_name='Du Hast', artist_name='Rammstein')
@@ -92,7 +117,9 @@ def main():
     # pp.pprint(r)
     # pp.pprint(q)
     # pp.pprint(p)
-    getSpotifyIDs()
+
+    #getSpotifyIDs()
+    getAudioAnalyses()
 
 if __name__ == "__main__":
     main()
