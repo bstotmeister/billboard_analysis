@@ -20,10 +20,13 @@ a_mgr = SpotifyClientCredentials(client_id=c_id, client_secret=c_scrt)
 spotify = spotipy.Spotify(client_credentials_manager=a_mgr)
 
 def fuzzyMatch(artist_name, artists):
-    #matchRatio = fuzz.ratio(artist_name, artists)
+    """
+    Constraints: Assumes artists[] is not empty
+    """
     match = process.extractOne(artist_name, artists)
-    print('%s : %s' % (artist_name, artists))
     index = artists.index(match[0])
+    confidence = fuzz.partial_ratio(artist_name, artists[index])
+    print('Fuzzy Match confidence: %s\t: %s : %s, %s' % (confidence, artist_name, index, artists))
 
     #return match
     return index
@@ -35,39 +38,44 @@ def getSpotifyID( song_name, artist_name ):
     artists_list = []
     for song in res['tracks']['items']:
         artists = [ artist['name'] for artist in song['artists'] ]
-        #artists_list += [ artists ]
-        #artists = ''
-        #for artist in song['artists']:
-         #   artists += artist['name'] + ' '
         artists_list += [ artists ]
 
-    pp.pprint(res)
-    print(song_name)
-    song_index = fuzzyMatch(artist_name, artists_list)
-    #print(song_index)
 
-    #print(artist_name)
-    #print(artists_list)
-    id = res['tracks']['items'][song_index]['id']
+    if len(artists_list) is 0:
+        id = -1
+        print('Song: %s\nBy: %s\nnot found in SpotifyWebAPI' % (song_name, artist_name))
+    else:
+        song_index = fuzzyMatch(artist_name, artists_list)
+        id = res['tracks']['items'][song_index]['id']
+
     return id
-    #return res
 
 
+# Works somewhat reliably?
 def getSpotifyIDs():
-    #song_ids = readPickleData( filepath='data/spotify_song_ids.pickle' )   # Disabled until we run program once to update cache
-    song_ids = dict()
+    """
+    Arguments: a dict[artists][songs]
+
+    :return: a new dict[artist][song] = id
+    """
+    song_ids = readPickleData( filepath='data/spotify_song_ids.pickle' )
     unique_songs = readPickleData( filepath='data/billboard_songs.pickle' )
 
     for artist in unique_songs:
         for song in unique_songs[artist]:
-            id = getSpotifyID( song_name=song, artist_name=artist)
+            #if 'XXXTENTACION' not in artist:
+            # if 'Doja Cat' not in artist:
+            #    break
             if artist not in song_ids:
                 song_ids[artist] = dict()
             if song not in song_ids[artist]:
+                id = getSpotifyID(song_name=song, artist_name=artist)
+                if id is -1:
+                    song_ids[artist][song] = id
+                    break
                 song_ids[artist][song] = id
-            elif id is not song_ids[artist][song]:
-                print('song:%s\n artist:%s\n id:%s \n' % (song, artist, id))
-                exit()
+            else:
+                print('Song found in cache: %s  by  %s' % (song, artist))
 
     pp.pprint(song_ids)
     writePickleData( data=song_ids, filepath='data/spotify_song_ids.pickle')
