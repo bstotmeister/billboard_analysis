@@ -19,6 +19,11 @@ c_scrt = os.getenv('SPOTIFY_CLIENT_SECRET')
 a_mgr = SpotifyClientCredentials(client_id=c_id, client_secret=c_scrt)
 spotify = spotipy.Spotify(client_credentials_manager=a_mgr)
 
+keys = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
+mode = { -1: 'N/A',
+          0: 'minor',
+          1: 'Major'}
+
 def fuzzyMatch(artist_name, artists):
     """
     Constraints: Assumes artists[] is not empty
@@ -53,23 +58,26 @@ def getSpotifyID( song_name, artist_name ):
 
 def getAudioAnalyses():
     song_ids = readPickleData(filepath='data/spotify_song_ids.pickle')
-    #pp.pprint(song_ids)
     song_analysis = readPickleData(filepath='data/song_analysis.pickle')
     #song_analysis = dict()
 
     for artist in song_ids:
         if artist not in song_analysis:
-            if 'XXXTENTACION' not in artist:
-               break
             song_analysis[artist] = dict()
         for song in song_ids[artist]:
+            # if 'Lady Gaga' not in artist:
+            #    break
             if song not in song_analysis[artist]:
                 spotify_id = song_ids[artist][song]
-                print(spotify_id)
                 if spotify_id is not -1:
-                    song_analysis[artist][song] = [ spotify.audio_analysis( track_id=spotify_id ) ] # First elem will be audio analysis, second will be audio features
+                    try:
+                        song_analysis[artist][song] = [ spotify.audio_analysis( track_id=spotify_id ) ] # First elem will be audio analysis, second will be audio features
+                    except spotipy.exceptions.SpotifyException as exception:
+                        print('Did not add %s by %s song analysis due to reason below' % (song, artist))
+                        print(exception)
+                        print('Could be due to an album ID instead of song ID')
             else:
-                print('Song: %s by: %s already found in cache' % (song, artist))
+                print('Song: %s by: %s already found in audio analysis cache' % (song, artist))
 
     writePickleData( data=song_analysis, filepath='data/song_analysis.pickle')
 
@@ -158,8 +166,8 @@ def main():
     # pp.pprint(p)
 
     #getSpotifyIDs()
-    #getAudioAnalyses()
-    getAudioFeatures()
+    getAudioAnalyses()
+    #getAudioFeatures()
 
 if __name__ == "__main__":
     main()
