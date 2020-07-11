@@ -3,6 +3,7 @@
 import os
 #import billboard_spotify_tests
 import requests
+import csv
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 import pprint
@@ -20,7 +21,7 @@ a_mgr = SpotifyClientCredentials(client_id=c_id, client_secret=c_scrt)
 spotify = spotipy.Spotify(client_credentials_manager=a_mgr)
 
 keys = ['C', 'Db', 'D', 'Eb', 'E', 'F', 'Gb', 'G', 'Ab', 'A', 'Bb', 'B']
-mode = { -1: 'N/A',
+modes = { -1: 'N/A',
           0: 'minor',
           1: 'Major'}
 
@@ -151,6 +152,39 @@ def getSpotifyIDs():
     # First thing - minimize billboard
 
 
+def processSongData():
+    song_ids = readPickleData(filepath='data/spotify_song_ids.pickle')
+    #song_analysis = readPickleData(filepath='data/song_analysis.pickle')  # Comment out as file is 2GB and takes a while to load, same concept as song_features
+    song_features = readPickleData(filepath='data/song_features.pickle')
+
+    tempo = dict()
+
+    for artist in song_features:
+        for song in song_features[artist]:
+            #print('@@@ Song: %s\nArtist: %s' % (song, artist))
+            #pp.pprint(song_features[artist][song])
+            if song_features[artist][song] is not None:
+                bpm = song_features[artist][song]['tempo']
+                song_key = keys[song_features[artist][song]['key']]
+                song_mode = modes[song_features[artist][song]['mode']]
+
+                if bpm not in tempo:
+                    tempo[bpm] = []
+                tempo[bpm] += [ [artist, song, bpm, song_key, song_mode] ]
+
+    return tempo
+
+
+def dataToCSV(data):
+    with open('data/tempo.csv', 'w', newline='') as csvfile:
+        wr = csv.writer(csvfile, delimiter=',')
+        results = []
+        for key in data:
+            for elem in data[key]:
+                print(elem)
+                wr.writerow(elem)
+
+        #write
 
 
 def main():
@@ -166,8 +200,11 @@ def main():
     # pp.pprint(p)
 
     #getSpotifyIDs()
-    getAudioAnalyses()
+    #getAudioAnalyses()
     #getAudioFeatures()
+
+    data = processSongData()
+    dataToCSV(data=data)
 
 if __name__ == "__main__":
     main()
