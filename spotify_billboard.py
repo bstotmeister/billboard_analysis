@@ -79,33 +79,38 @@ def getAudioAnalyses():
 # Batch requests audio features
 def getAudioFeatures():
     song_ids = readPickleData(filepath='data/spotify_song_ids.pickle')
-    song_features = readPickleData(filepath='data/song_features.pickle')
-    #song_features = dict()
+    try:
+        song_features = readPickleData(filepath='data/song_features.pickle')
+    except FileNotFoundError:
+        song_features = dict()
+        print("Creating new Audio Features cache")
 
-    ids = [] # [ (artist, song, id) ], need to save artist & song info for batching
+    ids = []  # [ (artist, song, id) ], need to save artist & song info for batching
     for artist in song_ids:
         if artist not in song_features:
             # if 'XXXTENTACION' not in artist:
             #    break
             song_features[artist] = dict()
         for song in song_ids[artist]:
-            id = song_ids[artist][song]
-            if id is not -1:
-                ids += [ (artist, song, id) ]
-            if len(ids) is 100:
-                features = spotify.audio_features(tracks=[id[2] for id in ids])
-                for id in ids:
-                    song_features[id[0]][id[1]] = features[ids.index(id)]
-                ids = []
+            if song not in song_features[artist]:
+                id = song_ids[artist][song]
+                if id is not -1:
+                    ids += [ (artist, song, id) ]
+                if len(ids) is 100:
+                    features = spotify.audio_features(tracks=[id[2] for id in ids])
+                    for id in ids:
+                        song_features[id[0]][id[1]] = features[ids.index(id)]
+                    ids = []
+            else:
+                print('Song: %s by: %s already found Audio Features cache' % (song, artist))
 
     # Last sub-100 batch
-    print(ids)
     features = spotify.audio_features(tracks=[id[2] for id in ids])
     for id in ids:
-        song_features[id[0]][id[1]] = features[ ids.index(id)]
+        song_features[id[0]][id[1]] = features[ids.index(id)]
 
     writePickleData( data=song_features, filepath='data/song_features.pickle')
-    pp.pprint(song_features)
+    #pp.pprint(song_features)
 
     return song_features
 
